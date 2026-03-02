@@ -274,7 +274,10 @@ app.post('/api/claude', async (req, res) => {
 
 // ─── HEALTH ──────────────────────────────────────────────────
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
-
+// --- ROOT (INDEX PAGE)
+app.get("/", (req, res) => {
+  res.sendFile(require("path").join(__dirname, "public", "index.html"));
+});
 // ─── START ───────────────────────────────────────────────────
 const PORT = process.env.PORT || 3000;
 
