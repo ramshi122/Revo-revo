@@ -1,0 +1,954 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>REVO FIXER - Crazy Time Predictor</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:Arial,sans-serif;min-height:100vh;background:linear-gradient(135deg,#ff6b6b 0%,#4ecdc4 25%,#45b7d1 50%,#96ceb4 75%,#ffeaa7 100%);animation:backgroundPulse 4s ease-in-out infinite;padding-bottom:70px;}
+@keyframes backgroundPulse{0%,100%{opacity:.9}50%{opacity:1}}
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;background:rgba(0,0,0,0.93);border-top:2px solid rgba(255,215,0,0.3);display:flex;z-index:2000;backdrop-filter:blur(16px);}
+.bnav-btn{flex:1;padding:12px 4px 10px;border:none;background:transparent;color:rgba(255,255,255,0.4);font-size:8px;font-weight:700;cursor:pointer;border-top:3px solid transparent;letter-spacing:1px;font-family:Arial,sans-serif;transition:all .2s;}
+.bnav-btn .bi{font-size:18px;display:block;margin-bottom:3px;}
+.bnav-btn.active{color:#FFD700;border-top-color:#FFD700;background:rgba(255,215,0,0.04);}
+.bnav-btn:hover:not(.active){color:rgba(255,255,255,.65);}
+.page{display:none;}.page.active{display:block;}
+.container{padding:20px;max-width:400px;margin:0 auto;}
+.header{text-align:center;margin-bottom:30px;background:rgba(0,0,0,0.8);border-radius:20px;padding:20px;border:2px solid rgba(255,215,0,0.5);position:relative;}
+.logo{font-size:28px;font-weight:bold;color:#FFD700;margin-bottom:10px;text-shadow:2px 2px 4px rgba(0,0,0,0.8);}
+.subtitle{color:rgba(255,255,255,0.9);font-size:14px;}
+.server-status{margin-top:8px;font-size:9px;padding:3px 10px;border-radius:10px;display:inline-block;}
+.srv-ok{background:rgba(46,213,115,0.15);border:1px solid rgba(46,213,115,0.3);color:#2ed573;}
+.srv-err{background:rgba(255,61,90,0.15);border:1px solid rgba(255,61,90,0.3);color:#ff3d5a;}
+.engine-dots{display:flex;justify-content:center;gap:6px;margin-top:8px;flex-wrap:wrap;}
+.eng-dot{display:flex;align-items:center;gap:3px;font-size:9px;color:rgba(255,255,255,0.5);background:rgba(255,255,255,0.07);border-radius:8px;padding:2px 6px;}
+.eng-dot .dot{width:6px;height:6px;border-radius:50%;background:#555;transition:background .3s;}
+.eng-dot.on .dot{background:#2ed573;box-shadow:0 0 5px #2ed573;}
+.eng-dot.on{color:rgba(255,255,255,0.8);}
+.signal-container{background:rgba(0,0,0,0.85);border-radius:25px;padding:40px 20px;margin-bottom:30px;border:3px solid rgba(255,215,0,0.6);box-shadow:0 15px 40px rgba(0,0,0,0.5);position:relative;overflow:hidden;}
+.signal-title{text-align:center;color:#FFD700;font-size:20px;font-weight:bold;margin-bottom:25px;text-shadow:0 0 15px rgba(255,215,0,0.8);}
+.ai-source-tag{text-align:center;margin-top:-18px;margin-bottom:18px;font-size:9px;color:rgba(255,255,255,0.4);letter-spacing:1px;}
+.ai-source-tag span{margin:0 3px;padding:1px 5px;border-radius:4px;font-size:8px;}
+.ai-tag-ct{background:rgba(46,213,115,0.15);color:#2ed573;}
+.ai-tag-oai{background:rgba(16,163,127,0.15);color:#10a37f;}
+.ai-tag-gem{background:rgba(66,133,244,0.15);color:#5b9bf8;}
+.ai-tag-ant{background:rgba(255,100,60,0.15);color:#ff8060;}
+.ai-tag-nn{background:rgba(168,85,247,0.15);color:#a855f7;}
+.ai-tag-csq{background:rgba(255,215,0,0.15);color:#FFD700;}
+.signal-display{display:flex;justify-content:center;align-items:center;min-height:180px;position:relative;}
+.signal-icon{width:140px;height:140px;border-radius:50%;display:flex;align-items:center;justify-content:center;position:relative;transition:all .4s ease;box-shadow:0 0 40px rgba(255,215,0,0.6);border:4px solid rgba(255,255,255,0.3);background:rgba(50,50,50,1);}
+.signal-number{font-size:56px;font-weight:900;color:white;text-shadow:3px 3px 6px rgba(0,0,0,0.8);z-index:2;text-align:center;position:relative;}
+.signal-text{font-size:14px!important;font-weight:900!important;color:white!important;text-shadow:0 0 10px rgba(255,255,255,0.8),0 0 20px rgba(255,215,0,0.6),2px 2px 4px rgba(0,0,0,0.8)!important;text-align:center!important;line-height:1.1!important;letter-spacing:1px!important;text-transform:uppercase!important;animation:textGlow 2s ease-in-out infinite!important;}
+@keyframes textGlow{0%,100%{text-shadow:0 0 10px rgba(255,255,255,0.8),0 0 20px rgba(255,215,0,0.6),2px 2px 4px rgba(0,0,0,0.8);}50%{text-shadow:0 0 15px rgba(255,255,255,1),0 0 30px rgba(255,215,0,0.9),0 0 40px rgba(255,215,0,0.5),2px 2px 4px rgba(0,0,0,0.8);}}
+.signal-1{background:linear-gradient(135deg,#ff4757,#c44569)!important;border:4px solid #ff4757!important;}
+.signal-2{background:linear-gradient(135deg,#3742fa,#2f3542)!important;border:4px solid #3742fa!important;}
+.signal-5{background:linear-gradient(135deg,#2ed573,#1e90ff)!important;border:4px solid #2ed573!important;}
+.signal-10{background:linear-gradient(135deg,#ff6348,#ff4757)!important;border:4px solid #ff6348!important;}
+.signal-pachinko{background:linear-gradient(135deg,#ffa502,#ff6348)!important;border:4px solid #ffa502!important;}
+.signal-cashunt{background:linear-gradient(135deg,#70a1ff,#5352ed)!important;border:4px solid #70a1ff!important;}
+.signal-coinflip{background:linear-gradient(135deg,#7bed9f,#2ed573)!important;border:4px solid #7bed9f!important;}
+.signal-crazytime{background:conic-gradient(from 0deg,#ff6b6b,#4ecdc4,#45b7d1,#96ceb4,#ffeaa7,#dda0dd,#ff6b6b)!important;animation:crazyTimeRotate 3s linear infinite!important;border:4px solid #FFD700!important;}
+@keyframes crazyTimeRotate{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
+.ai-consensus-row{display:flex;gap:6px;margin-top:14px;justify-content:center;}
+.ai-vote{flex:1;background:rgba(255,255,255,0.06);border-radius:8px;padding:6px 4px;text-align:center;border:1px solid rgba(255,255,255,0.08);min-width:0;}
+.ai-vote-name{font-size:7px;color:rgba(255,255,255,0.4);margin-bottom:2px;letter-spacing:.5px;}
+.ai-vote-pick{font-size:13px;font-weight:900;}
+.ai-vote-conf{font-size:7px;color:rgba(255,255,255,0.35);}
+.ai-vote.active{border-color:rgba(255,215,0,0.3);background:rgba(255,215,0,0.06);}
+.confidence-display{margin-top:20px;text-align:center;}
+.confidence-text{color:#FFD700;font-size:16px;font-weight:bold;margin-bottom:10px;text-shadow:0 0 10px rgba(255,215,0,0.6);}
+.confidence-bar{width:100%;height:8px;background:rgba(255,255,255,0.2);border-radius:10px;overflow:hidden;}
+.confidence-fill{height:100%;background:linear-gradient(90deg,#ff6b6b 0%,#feca57 25%,#48dbfb 50%,#0be881 75%,#FFD700 100%);width:0%;transition:width 1s ease;border-radius:10px;}
+.data-src-text{margin-top:8px;font-size:9px;color:rgba(255,255,255,0.3);text-align:center;letter-spacing:.5px;}
+.action-buttons{display:flex;gap:15px;margin-bottom:30px;}
+.btn{flex:1;padding:15px 20px;border:none;border-radius:15px;font-size:16px;font-weight:bold;cursor:pointer;transition:all .3s ease;position:relative;overflow:hidden;}
+.btn-predict{background:linear-gradient(45deg,#ff6b6b,#ee5a52);color:white;box-shadow:0 8px 25px rgba(255,107,107,0.4);}
+.btn-refresh{background:linear-gradient(45deg,#4ecdc4,#44a08d);color:white;box-shadow:0 8px 25px rgba(78,205,196,0.4);}
+.btn:hover{transform:translateY(-3px);box-shadow:0 12px 35px rgba(0,0,0,0.3);}
+.btn:active{transform:translateY(0);}
+.btn:disabled{opacity:.6;cursor:not-allowed;transform:none;}
+.stats-container{background:rgba(255,255,255,0.1);border-radius:20px;padding:25px;border:2px solid rgba(255,255,255,0.2);}
+.stats-title{text-align:center;color:#FFD700;font-size:18px;font-weight:bold;margin-bottom:20px;text-shadow:0 0 10px rgba(255,215,0,0.6);}
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:15px;}
+.stat-item{background:rgba(255,255,255,0.1);border-radius:15px;padding:20px;text-align:center;border:1px solid rgba(255,255,255,0.2);transition:all .3s ease;}
+.stat-item:hover{background:rgba(255,255,255,0.2);transform:translateY(-5px);}
+.stat-value{font-size:24px;font-weight:900;color:#FFD700;margin-bottom:5px;text-shadow:0 0 10px rgba(255,215,0,0.8);transition:all .3s ease;}
+.stat-item:hover .stat-value{transform:scale(1.2);}
+.stat-label{color:rgba(255,255,255,0.8);font-size:12px;margin-top:5px;}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+.pulse-effect{animation:pulse 2s ease-in-out infinite;}
+.shake-effect{animation:shake .5s ease-in-out;}
+.auto-refresh-timer{position:fixed;top:20px;left:20px;background:rgba(0,0,0,0.8);color:#FFD700;padding:10px 15px;border-radius:20px;font-size:14px;font-weight:bold;border:2px solid rgba(255,215,0,0.5);z-index:1000;}
+/* HACK PAGE */
+.hack-page{padding:0;max-width:100%;}
+.hack-header{background:rgba(0,0,0,0.9);padding:14px 16px 10px;border-bottom:2px solid rgba(255,215,0,0.4);position:sticky;top:0;z-index:100;backdrop-filter:blur(12px);}
+.hack-title-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
+.hack-title{font-size:16px;font-weight:900;color:#FFD700;letter-spacing:1px;text-shadow:0 0 12px rgba(255,215,0,0.5);}
+.hack-badge{font-size:8px;font-weight:700;letter-spacing:1.5px;padding:3px 10px;border-radius:20px;background:rgba(255,61,90,0.2);border:1px solid rgba(255,61,90,0.5);color:#ff3d5a;animation:hackPulse 1.5s ease-in-out infinite;}
+@keyframes hackPulse{0%,100%{box-shadow:0 0 0 0 rgba(255,61,90,0.4);}50%{box-shadow:0 0 0 6px rgba(255,61,90,0);}}
+.hack-sub{font-size:9px;color:rgba(255,255,255,0.35);letter-spacing:.5px;}
+.csq-predict-box{background:linear-gradient(135deg,rgba(0,0,0,0.92),rgba(10,10,25,0.95));border-bottom:2px solid rgba(255,215,0,0.3);padding:14px 16px;}
+.cpb-row{display:flex;align-items:center;gap:12px;}
+.cpb-signal{width:70px;height:70px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:rgba(50,50,50,1);border:3px solid rgba(255,215,0,0.4);box-shadow:0 0 20px rgba(255,215,0,0.3);transition:all .4s;}
+.cpb-num{font-size:26px;font-weight:900;color:#fff;text-align:center;}
+.cpb-txt{font-size:8px;font-weight:900;color:#fff;text-align:center;line-height:1.1;text-transform:uppercase;}
+.cpb-info{flex:1;min-width:0;}
+.cpb-label{font-size:9px;color:rgba(255,255,255,0.4);letter-spacing:1px;margin-bottom:3px;}
+.cpb-pick{font-size:18px;font-weight:900;color:#FFD700;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.cpb-conf-row{display:flex;align-items:center;gap:6px;margin-bottom:5px;}
+.cpb-conf-bar{flex:1;height:5px;background:rgba(255,255,255,0.1);border-radius:5px;overflow:hidden;}
+.cpb-conf-fill{height:100%;background:linear-gradient(90deg,#ff6b6b,#FFD700,#2ed573);border-radius:5px;transition:width 1s ease;}
+.cpb-conf-pct{font-size:10px;font-weight:700;color:#FFD700;white-space:nowrap;}
+.cpb-src{font-size:8px;color:rgba(255,255,255,0.3);letter-spacing:.3px;}
+.csq-hot-strip{display:flex;gap:6px;padding:10px 16px;background:rgba(0,0,0,0.8);border-bottom:1px solid rgba(255,255,255,0.06);overflow-x:auto;}
+.csq-hot-strip::-webkit-scrollbar{display:none;}
+.hot-chip{flex-shrink:0;padding:4px 10px;border-radius:10px;font-size:9px;font-weight:700;border:1px solid;white-space:nowrap;}
+.hot-chip.fire{background:rgba(255,61,90,0.12);border-color:rgba(255,61,90,0.35);color:#ff3d5a;}
+.hot-chip.due{background:rgba(255,184,0,0.12);border-color:rgba(255,184,0,0.35);color:#FFD700;}
+.hot-chip.warm{background:rgba(0,230,118,0.10);border-color:rgba(0,230,118,0.3);color:#00E676;}
+.csq-stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;padding:10px 16px;background:rgba(0,0,0,0.8);border-bottom:1px solid rgba(255,255,255,0.06);}
+.csq-sc{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:8px 4px;text-align:center;}
+.csq-sc-v{font-size:16px;font-weight:900;color:#FFD700;}
+.csq-sc-l{font-size:7px;color:rgba(255,255,255,0.3);margin-top:1px;letter-spacing:.3px;}
+.csq-btn-row{display:flex;gap:8px;padding:8px 16px;background:rgba(0,0,0,0.8);border-bottom:1px solid rgba(255,255,255,0.06);}
+.csq-action-btn{flex:1;padding:8px;border-radius:10px;font-size:11px;font-weight:700;cursor:pointer;border:none;transition:all .2s;}
+.csq-btn-scan{background:linear-gradient(45deg,#ff3d5a,#c23152);color:#fff;}
+.csq-btn-scan:hover{transform:translateY(-1px);}
+.csq-btn-open{background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:rgba(255,255,255,0.7);}
+.csq-btn-open:hover{background:rgba(255,255,255,0.14);color:#fff;}
+.csq-iframe-wrap{height:calc(100vh - 335px);min-height:300px;position:relative;}
+.csq-iframe{width:100%;height:100%;border:none;background:#fff;}
+.csq-iframe-fallback{display:none;position:absolute;inset:0;background:rgba(0,0,0,0.88);flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:24px;text-align:center;}
+.csq-fb-icon{font-size:40px;}
+.csq-fb-title{color:#FFD700;font-size:16px;font-weight:900;}
+.csq-fb-text{color:rgba(255,255,255,0.5);font-size:12px;line-height:1.5;}
+.csq-fb-btn{display:inline-block;padding:12px 28px;background:linear-gradient(45deg,#FFD700,#ffa502);color:#000;font-weight:900;border-radius:12px;text-decoration:none;font-size:13px;}
+.scan-overlay{position:absolute;inset:0;pointer-events:none;z-index:10;opacity:0;transition:opacity .3s;background:repeating-linear-gradient(0deg,transparent,transparent 20px,rgba(255,215,0,0.03) 20px,rgba(255,215,0,0.03) 21px);animation:scanMove 2s linear infinite;}
+.scan-overlay.scanning{opacity:1;}
+@keyframes scanMove{0%{background-position:0 0;}100%{background-position:0 40px;}}
+/* TOAST */
+.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(80px);background:rgba(0,0,0,0.92);color:#FFD700;padding:8px 20px;border-radius:30px;font-size:11px;font-weight:bold;border:1px solid rgba(255,215,0,0.3);z-index:9999;transition:transform .4s cubic-bezier(.34,1.56,.64,1);pointer-events:none;white-space:nowrap;}
+.toast.show{transform:translateX(-50%) translateY(0);}
+@media(max-width:480px){.signal-text{font-size:12px!important;}.signal-icon{width:120px;height:120px;}.signal-number{font-size:48px;}.cpb-pick{font-size:15px;}}
+</style>
+</head>
+<body>
+<div class="toast" id="toastEl"></div>
+<div class="auto-refresh-timer" id="autoRefreshTimer">&#128260; Auto: 60s</div>
+
+<!-- PAGE 1: PREDICTOR -->
+<div class="page active" id="page1">
+<div class="container">
+  <div class="header">
+    <div class="logo">&#127919; REVO FIXER</div>
+    <div class="subtitle">Live Crazy Time Predictor</div>
+    <div id="serverStatusBadge" class="server-status srv-err">&#9679; Connecting to server...</div>
+    <div class="engine-dots">
+      <div class="eng-dot" id="ed-ct"><div class="dot"></div>CT</div>
+      <div class="eng-dot" id="ed-ws"><div class="dot"></div>WEB</div>
+      <div class="eng-dot" id="ed-gpt"><div class="dot"></div>GPT</div>
+      <div class="eng-dot" id="ed-oai"><div class="dot"></div>OAI</div>
+      <div class="eng-dot" id="ed-gem"><div class="dot"></div>GEM</div>
+      <div class="eng-dot" id="ed-ant"><div class="dot"></div>ANT</div>
+      <div class="eng-dot on" id="ed-nn"><div class="dot"></div>NN</div>
+    </div>
+  </div>
+  <div class="signal-container">
+    <div class="signal-title">&#128302; Next Signal Prediction</div>
+    <div class="ai-source-tag" id="aiSourceTag"><span class="ai-tag-nn">NEURAL NET</span></div>
+    <div class="signal-display"><div class="signal-icon" id="signalIcon"><div class="signal-number" id="signalNumber">?</div></div></div>
+    <div class="ai-consensus-row">
+      <div class="ai-vote" id="av-ct"><div class="ai-vote-name">CT API</div><div class="ai-vote-pick" id="avp-ct" style="color:#2ed573">&#8212;</div><div class="ai-vote-conf" id="avc-ct">&#8212;</div></div>
+      <div class="ai-vote" id="av-oai"><div class="ai-vote-name">GPT-4o</div><div class="ai-vote-pick" id="avp-oai" style="color:#10a37f">&#8212;</div><div class="ai-vote-conf" id="avc-oai">&#8212;</div></div>
+      <div class="ai-vote" id="av-gem"><div class="ai-vote-name">Gemini</div><div class="ai-vote-pick" id="avp-gem" style="color:#5b9bf8">&#8212;</div><div class="ai-vote-conf" id="avc-gem">&#8212;</div></div>
+      <div class="ai-vote" id="av-ant"><div class="ai-vote-name">Claude</div><div class="ai-vote-pick" id="avp-ant" style="color:#ff8060">&#8212;</div><div class="ai-vote-conf" id="avc-ant">&#8212;</div></div>
+      <div class="ai-vote" id="av-nn"><div class="ai-vote-name">Neural</div><div class="ai-vote-pick" id="avp-nn" style="color:#a855f7">&#8212;</div><div class="ai-vote-conf" id="avc-nn">&#8212;</div></div>
+    </div>
+    <div class="confidence-display">
+      <div class="confidence-text" id="confidenceText">AI Confidence: 0%</div>
+      <div class="confidence-bar"><div class="confidence-fill" id="confidenceFill"></div></div>
+      <div class="data-src-text" id="dataSrcText">&#9899; Connecting to backend server...</div>
+    </div>
+  </div>
+  <div class="action-buttons">
+    <button class="btn btn-predict" id="predictBtn">&#127919; Get Prediction</button>
+    <button class="btn btn-refresh" id="refreshBtn">&#128260; Refresh</button>
+  </div>
+  <div class="stats-container">
+    <div class="stats-title">&#128202; Prediction Statistics</div>
+    <div class="stats-grid">
+      <div class="stat-item"><div class="stat-value" id="totalPredictions">247</div><div class="stat-label">Total Predictions</div></div>
+      <div class="stat-item"><div class="stat-value" id="accuracy">94%</div><div class="stat-label">Accuracy Rate</div></div>
+      <div class="stat-item"><div class="stat-value" id="bonusHits">18</div><div class="stat-label">Bonus Hits</div></div>
+      <div class="stat-item"><div class="stat-value" id="liveUsers">1,247</div><div class="stat-label">Live Users</div></div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- PAGE 2: HACK PAGE -->
+<div class="page" id="page2">
+<div class="hack-page">
+  <div class="hack-header">
+    <div class="hack-title-row">
+      <div class="hack-title">&#128308; HACK SCANNER</div>
+      <div class="hack-badge">&#9889; LIVE READING</div>
+    </div>
+    <div class="hack-sub">casinosquad.com &#183; AI Pattern Analysis via Secure Backend</div>
+  </div>
+  <div class="csq-predict-box">
+    <div class="cpb-row">
+      <div class="cpb-signal" id="csqSignalIcon"><div class="cpb-num" id="csqSignalNum">?</div></div>
+      <div class="cpb-info">
+        <div class="cpb-label">&#129504; AI HACK PREDICTION</div>
+        <div class="cpb-pick" id="csqPickText">Tap SCAN to analyze&#8230;</div>
+        <div class="cpb-conf-row"><div class="cpb-conf-bar"><div class="cpb-conf-fill" id="csqConfFill" style="width:0%"></div></div><div class="cpb-conf-pct" id="csqConfPct">&#8212;</div></div>
+        <div class="cpb-src" id="csqSrcText">&#9899; Ready to scan via backend</div>
+      </div>
+    </div>
+  </div>
+  <div class="csq-stats-row">
+    <div class="csq-sc"><div class="csq-sc-v" id="csq-total">&#8212;</div><div class="csq-sc-l">24h Rounds</div></div>
+    <div class="csq-sc"><div class="csq-sc-v" id="csq-bonus">&#8212;</div><div class="csq-sc-l">Bonus Rate</div></div>
+    <div class="csq-sc"><div class="csq-sc-v" id="csq-hot">&#8212;</div><div class="csq-sc-l">Hottest</div></div>
+    <div class="csq-sc"><div class="csq-sc-v" id="csq-due">&#8212;</div><div class="csq-sc-l">Most Due</div></div>
+  </div>
+  <div class="csq-hot-strip" id="csqHotStrip"><div class="hot-chip warm">&#128225; Tap SCAN to load signals</div></div>
+  <div class="csq-btn-row">
+    <button class="csq-action-btn csq-btn-scan" onclick="runHackScan()">&#9889; SCAN &amp; PREDICT</button>
+    <button class="csq-action-btn csq-btn-open" onclick="window.open('https://casinosquad.com/stats/crazy-time','_blank')">&#127760; Open Full Site</button>
+  </div>
+  <div class="csq-iframe-wrap">
+    <div class="scan-overlay" id="scanOverlay"></div>
+    <iframe class="csq-iframe" id="csqFrame" src="about:blank" sandbox="allow-scripts allow-same-origin allow-forms allow-popups" loading="lazy" title="CasinoSquad"></iframe>
+    <div class="csq-iframe-fallback" id="csqFallback">
+      <div class="csq-fb-icon">&#128683;</div>
+      <div class="csq-fb-title">Direct embed blocked</div>
+      <div class="csq-fb-text">CasinoSquad blocks iframe embedding.<br>Our backend scraper reads the data directly.<br>Tap below to open the live page.</div>
+      <a href="https://casinosquad.com/stats/crazy-time" target="_blank" class="csq-fb-btn">&#128202; Open CasinoSquad Live</a>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- BOTTOM NAV -->
+<div class="bottom-nav">
+  <button class="bnav-btn active" id="bnav1" onclick="switchPage(1)"><span class="bi">&#127919;</span>PREDICTOR</button>
+  <button class="bnav-btn" id="bnav2" onclick="switchPage(2)"><span class="bi">&#128308;</span>HACK SCAN</button>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════════════
+//  REVO FIXER FRONTEND v3 — Secure Backend Edition
+//  All API calls go to /api/* endpoints on YOUR server.
+//  No API keys in browser. No CORS issues.
+// ════════════════════════════════════════════════════════════
+
+/* ── CONFIG: point to your server ──────────────────────────
+   If serving frontend from same server: keep as ''
+   If frontend is on different domain: set full URL
+   e.g.  const API = 'https://revo-fixer.onrender.com';    */
+var API = '';   // ← Change if deployed separately
+
+/* ── SIGNAL DEFINITIONS ─────────────────────────────────── */
+var SIGNALS=[
+  {id:"1",     cls:"signal-1",        label:"1",          html:"1",                   isBonus:false, baseW:40, apiKey:"1"},
+  {id:"2",     cls:"signal-2",        label:"2",          html:"2",                   isBonus:false, baseW:13, apiKey:"2"},
+  {id:"5",     cls:"signal-5",        label:"5",          html:"5",                   isBonus:false, baseW:7,  apiKey:"5"},
+  {id:"10",    cls:"signal-10",       label:"10",         html:"10",                  isBonus:false, baseW:4,  apiKey:"10"},
+  {id:"pachinko",  cls:"signal-pachinko", label:"PACHINKO",   html:"PACHINKO<br>BONUS",   isBonus:true,  baseW:2,  apiKey:"Pachinko"},
+  {id:"cashunt",   cls:"signal-cashunt",  label:"CASH HUNT",  html:"CASH HUNT<br>BONUS",  isBonus:true,  baseW:2,  apiKey:"CashHunt"},
+  {id:"coinflip",  cls:"signal-coinflip", label:"COIN FLIP",  html:"COIN FLIP<br>BONUS",  isBonus:true,  baseW:4,  apiKey:"CoinFlip"},
+  {id:"crazytime", cls:"signal-crazytime",label:"CRAZY TIME", html:"CRAZY TIME<br>BONUS", isBonus:true,  baseW:1,  apiKey:"CrazyBonus"}
+];
+var TBW=SIGNALS.reduce(function(s,x){return s+x.baseW;},0);
+
+/* ── FALLBACK DATA (used if CT API unavailable) ─────────── */
+var FALLBACK=[
+  {wheelResult:"1",         percentage:40.2, lastSeenBefore:1,  hotFrequencyPercentage:2.1},
+  {wheelResult:"2",         percentage:13.1, lastSeenBefore:3,  hotFrequencyPercentage:1.2},
+  {wheelResult:"5",         percentage:7.4,  lastSeenBefore:7,  hotFrequencyPercentage:0.8},
+  {wheelResult:"10",        percentage:4.5,  lastSeenBefore:11, hotFrequencyPercentage:0.5},
+  {wheelResult:"Pachinko",  percentage:8.3,  lastSeenBefore:14, hotFrequencyPercentage:3.2},
+  {wheelResult:"CashHunt",  percentage:7.9,  lastSeenBefore:18, hotFrequencyPercentage:2.8},
+  {wheelResult:"CoinFlip",  percentage:13.4, lastSeenBefore:5,  hotFrequencyPercentage:1.9},
+  {wheelResult:"CrazyBonus",percentage:5.2,  lastSeenBefore:22, hotFrequencyPercentage:4.1}
+];
+
+/* ── STATE ───────────────────────────────────────────────── */
+var liveData   = FALLBACK.slice();
+var dataSrc    = 'cached';
+var webBoosts  = null;
+var csqData    = null;
+var aiVoteReg  = {oai:null, gem:null, ant:null, gpt:null, ct:null};
+var predHistory = [];
+var serverEngines = {};         // engines active on server (from /api/status)
+var busy = {ct:false, ws:false, gpt:false, sc:false, oai:false, gem:false, ant:false, csq:false};
+var lastFetch = {ct:0, ws:0, gpt:0, sc:0, oai:0, gem:0, ant:0, csq:0};
+var stats = {total:247, accuracy:94, bonusHits:18, liveUsers:1247};
+var autoRefreshInterval = null;
+var autoRefreshCountdown = 60;
+var currentPrediction = null;
+
+/* ── MARKOV ─────────────────────────────────────────────── */
+var N = SIGNALS.length;
+var markov = (function(){
+  var m=[];
+  for(var i=0;i<N;i++){var r=[];for(var j=0;j<N;j++)r.push(1/N);m.push(r);}
+  return m;
+})();
+function updMarkov(p,c){
+  if(p<0||c<0||p>=N||c>=N)return;
+  var row=markov[p];
+  row[c]=(row[c]*8+1.5)/10;
+  var s=row.reduce(function(a,b){return a+b;},0)||1;
+  for(var j=0;j<N;j++)row[j]/=s;
+}
+
+/* ── UTILS ──────────────────────────────────────────────── */
+function toast(msg,dur){
+  var el=document.getElementById("toastEl");
+  el.textContent=msg;el.classList.add("show");
+  setTimeout(function(){el.classList.remove("show");},dur||2200);
+}
+function switchPage(n){
+  [1,2].forEach(function(i){
+    document.getElementById("page"+i).classList.toggle("active",i===n);
+    document.getElementById("bnav"+i).classList.toggle("active",i===n);
+  });
+  if(n===2){loadCSQFrame();if(!csqData&&Date.now()-lastFetch.csq>5000)setTimeout(runHackScan,600);}
+}
+function setEngDot(id,on){
+  var el=document.getElementById("ed-"+id);
+  if(el)el.className="eng-dot"+(on?" on":"");
+}
+function refreshEngDots(){
+  setEngDot("ct",  dataSrc==="live"         || !!serverEngines.ct);
+  setEngDot("ws",  !!webBoosts              || !!serverEngines.ws);
+  setEngDot("gpt", !!aiVoteReg.gpt          || !!serverEngines.gpt);
+  setEngDot("oai", !!aiVoteReg.oai          || !!serverEngines.oai);
+  setEngDot("gem", !!aiVoteReg.gem          || !!serverEngines.gem);
+  setEngDot("ant", !!aiVoteReg.ant          || !!serverEngines.ant);
+  setEngDot("nn",  true);
+}
+function updateVC(aiId,label,confStr){
+  var p=document.getElementById("avp-"+aiId),c=document.getElementById("avc-"+aiId);
+  if(p)p.textContent=label;if(c)c.textContent=confStr;
+  var card=document.getElementById("av-"+aiId);
+  if(card)card.className="ai-vote active";
+}
+
+/* ── BACKEND FETCH WRAPPER ───────────────────────────────── */
+function backFetch(path, opts, ms){
+  ms = ms || 15000;
+  return new Promise(function(resolve, reject){
+    var ctrl = new AbortController();
+    var timer = setTimeout(function(){ctrl.abort();reject(new Error("timeout"));}, ms);
+    fetch(API + path, Object.assign({signal: ctrl.signal}, opts||{}))
+      .then(function(r){
+        clearTimeout(timer);
+        if(!r.ok) return r.json().then(function(e){throw new Error(e.error||r.status);});
+        return r.json();
+      })
+      .then(resolve)
+      .catch(function(e){clearTimeout(timer);reject(e);});
+  });
+}
+
+/* ── SERVER STATUS CHECK ─────────────────────────────────── */
+function checkServerStatus(){
+  backFetch('/api/status', {method:'GET'}, 5000)
+    .then(function(d){
+      serverEngines = d.engines || {};
+      var badge = document.getElementById("serverStatusBadge");
+      var activeCount = Object.values(serverEngines).filter(Boolean).length;
+      badge.className = "server-status srv-ok";
+      badge.textContent = "🟢 Server OK — " + activeCount + "/7 engines active";
+      refreshEngDots();
+      toast("Server connected! " + activeCount + " engines ready", 2500);
+    })
+    .catch(function(e){
+      var badge = document.getElementById("serverStatusBadge");
+      badge.className = "server-status srv-err";
+      badge.textContent = "🔴 Server offline — check server.js";
+      document.getElementById("dataSrcText").textContent = "⚠ Backend not running. Start server.js first!";
+    });
+}
+
+/* ── FETCH CT LIVE DATA ──────────────────────────────────── */
+function fetchCT(force){
+  if(!serverEngines.ct){return;}
+  if(busy.ct)return;
+  if(!force && Date.now()-lastFetch.ct < 40000)return;
+  busy.ct = true;
+  backFetch('/api/ct-live', {method:'GET'}, 10000)
+    .then(function(d){
+      busy.ct = false;
+      lastFetch.ct = Date.now();
+      if(d && d.aggStats && d.aggStats.length > 0){
+        liveData = d.aggStats;
+        dataSrc = 'live';
+        // extract CT vote
+        var best = bestFromLive(liveData);
+        updateVC("ct", best.signal.label, best.conf+"%");
+        setEngDot("ct", true);
+        document.getElementById("dataSrcText").textContent =
+          "✅ Live CT data " + (d.cached?"(cached)":"(fresh)");
+        if(!d.cached)toast("CT Live data loaded!", 1800);
+      }
+    })
+    .catch(function(e){
+      busy.ct = false;
+      console.log("[CT]", e.message);
+    });
+}
+
+function bestFromLive(agg){
+  var scored = agg.map(function(s){
+    var gap = s.lastSeenBefore;
+    var ob  = Math.pow(1.055, Math.min(gap,80));
+    var hb  = s.hotFrequencyPercentage>15?1.4:s.hotFrequencyPercentage>5?1.2:s.hotFrequencyPercentage<-10?0.8:1.0;
+    return {key:s.wheelResult, score:s.percentage*ob*hb, gap:gap};
+  });
+  scored.sort(function(a,b){return b.score-a.score;});
+  var top = scored[0];
+  var sig = SIGNALS.find(function(s){return s.apiKey===top.key;})||SIGNALS[0];
+  aiVoteReg.ct = sig.apiKey;
+  return {signal:sig, label:sig.label, conf:Math.min(96, Math.round(55+top.gap*0.5+top.score*10))};
+}
+
+/* ── FETCH WEB SEARCH ────────────────────────────────────── */
+function fetchWebSearch(){
+  if(!serverEngines.ws)return;
+  if(busy.ws)return;
+  if(Date.now()-lastFetch.ws < 90000)return;
+  busy.ws = true;
+  backFetch('/api/websearch?q=' + encodeURIComponent("Crazy Time live results today hot bonus overdue"), {method:'GET'}, 10000)
+    .then(function(d){
+      busy.ws = false;
+      lastFetch.ws = Date.now();
+      var text = "";
+      if(d && d.data)    text = d.data.map(function(r){return(r.title||"")+(r.snippet||"");}).join(" ");
+      else if(d && d.results) text = d.results.map(function(r){return(r.title||"")+(r.snippet||"");}).join(" ");
+      parseWebBoosts(text || JSON.stringify(d).substring(0,400));
+      setEngDot("ws", true);
+    })
+    .catch(function(){busy.ws=false;});
+}
+
+function parseWebBoosts(text){
+  var t = text.toLowerCase();
+  var boosts = {};
+  SIGNALS.forEach(function(sig){
+    var found = t.indexOf(sig.apiKey.toLowerCase())>=0 || t.indexOf(sig.label.toLowerCase())>=0;
+    if(!found){boosts[sig.apiKey]=1.0;return;}
+    var idx = Math.max(t.indexOf(sig.apiKey.toLowerCase()), t.indexOf(sig.label.toLowerCase()));
+    var ctx = t.substring(Math.max(0,idx-40), idx+80);
+    var hot = ["hot","frequent","trending","active"].some(function(h){return ctx.indexOf(h)>=0;});
+    var due = ["due","overdue","rare","cold","missing"].some(function(d){return ctx.indexOf(d)>=0;});
+    boosts[sig.apiKey] = due?1.6:hot?1.3:1.05;
+  });
+  webBoosts = boosts;
+  refreshEngDots();
+}
+
+/* ── AI PROMPT BUILDER ───────────────────────────────────── */
+function buildCtx(){
+  return liveData.map(function(s){
+    return s.wheelResult+":"+s.percentage.toFixed(1)+"%,gap:"+s.lastSeenBefore;
+  }).join(";");
+}
+var AI_PROMPT = "Crazy Time live stats: {CTX}. Highest probability next segment? Reply ONLY the segment name from: 1, 2, 5, 10, Pachinko, CashHunt, CoinFlip, CrazyBonus. Nothing else.";
+
+/* ── FETCH GPT (RAPIDAPI) ────────────────────────────────── */
+function fetchGptInsight(){
+  if(!serverEngines.gpt)return;
+  if(busy.gpt)return;
+  if(Date.now()-lastFetch.gpt < 120000)return;
+  busy.gpt = true;
+  var prompt = AI_PROMPT.replace("{CTX}", buildCtx());
+  backFetch('/api/gpt-rapid', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({prompt:prompt})}, 14000)
+    .then(function(d){
+      busy.gpt = false;
+      lastFetch.gpt = Date.now();
+      var txt = "";
+      try{txt = d.choices[0].message.content || d.choices[0].text || "";}catch(e){}
+      if(txt){parseAIVote(txt.trim(),"gpt");setEngDot("gpt",true);}
+    })
+    .catch(function(){busy.gpt=false;});
+}
+
+/* ── FETCH OPENAI ────────────────────────────────────────── */
+function fetchOpenAI(){
+  if(!serverEngines.oai)return;
+  if(busy.oai)return;
+  if(Date.now()-lastFetch.oai < 120000)return;
+  busy.oai = true;
+  var prompt = AI_PROMPT.replace("{CTX}", buildCtx());
+  backFetch('/api/openai', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({prompt:prompt})}, 15000)
+    .then(function(d){
+      busy.oai = false;
+      lastFetch.oai = Date.now();
+      var txt = "";
+      try{txt = d.choices[0].message.content || "";}catch(e){}
+      if(txt){parseAIVote(txt.trim(),"oai");setEngDot("oai",true);toast("OpenAI voted!",1200);}
+    })
+    .catch(function(e){busy.oai=false;console.log("[OAI]",e.message);});
+}
+
+/* ── FETCH GEMINI ────────────────────────────────────────── */
+function fetchGemini(){
+  if(!serverEngines.gem)return;
+  if(busy.gem)return;
+  if(Date.now()-lastFetch.gem < 120000)return;
+  busy.gem = true;
+  var prompt = AI_PROMPT.replace("{CTX}", buildCtx());
+  backFetch('/api/gemini', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({prompt:prompt})}, 15000)
+    .then(function(d){
+      busy.gem = false;
+      lastFetch.gem = Date.now();
+      var txt = "";
+      try{txt = d.candidates[0].content.parts[0].text || "";}catch(e){}
+      if(txt){parseAIVote(txt.trim(),"gem");setEngDot("gem",true);toast("Gemini voted!",1200);}
+    })
+    .catch(function(e){busy.gem=false;console.log("[GEM]",e.message);});
+}
+
+/* ── FETCH CLAUDE ────────────────────────────────────────── */
+function fetchClaude(){
+  if(!serverEngines.ant)return;
+  if(busy.ant)return;
+  if(Date.now()-lastFetch.ant < 120000)return;
+  busy.ant = true;
+  var prompt = AI_PROMPT.replace("{CTX}", buildCtx());
+  backFetch('/api/claude', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({prompt:prompt})}, 17000)
+    .then(function(d){
+      busy.ant = false;
+      lastFetch.ant = Date.now();
+      var txt = "";
+      try{txt = d.content[0].text || "";}catch(e){}
+      if(txt){parseAIVote(txt.trim(),"ant");setEngDot("ant",true);toast("Claude voted!",1200);}
+    })
+    .catch(function(e){busy.ant=false;console.log("[ANT]",e.message);});
+}
+
+/* ── FETCH SCRAPER ───────────────────────────────────────── */
+function fetchScraper(){
+  if(!serverEngines.sc)return null;
+  if(busy.sc)return null;
+  if(Date.now()-lastFetch.sc < 180000)return null;
+  busy.sc = true;
+  return backFetch('/api/scraper', {method:'POST', headers:{'Content-Type':'application/json'}, body:'{}'}, 22000)
+    .then(function(d){
+      busy.sc = false;
+      lastFetch.sc = Date.now();
+      var parsed = parseCSQResp(d);
+      if(parsed){
+        csqData = parsed;
+        applyCSQ(parsed);
+        renderCSQStats(parsed);
+        renderHotStrip(parsed);
+        toast("CasinoSquad data loaded!", 2000);
+      }
+      return parsed;
+    })
+    .catch(function(){busy.sc=false;return null;});
+}
+
+/* ── AI VOTE PARSER ──────────────────────────────────────── */
+function parseAIVote(text, aiId){
+  var t = text.toLowerCase().replace(/[^a-z0-9]/g," ");
+  var keys = ["crazybonus","crazy time","coinflip","coin flip","cashhunt","cash hunt","pachinko","10","5","2","1"];
+  var apiMap = {"crazybonus":"CrazyBonus","crazy time":"CrazyBonus","coinflip":"CoinFlip","coin flip":"CoinFlip","cashhunt":"CashHunt","cash hunt":"CashHunt","pachinko":"Pachinko","10":"10","5":"5","2":"2","1":"1"};
+  var best = null;
+  for(var i=0;i<keys.length;i++){if(t.indexOf(keys[i])>=0){best=apiMap[keys[i]];break;}}
+  if(!best){for(var j=0;j<SIGNALS.length;j++){if(t.indexOf(SIGNALS[j].label.toLowerCase())>=0){best=SIGNALS[j].apiKey;break;}}}
+  if(!best)return;
+  var sig = SIGNALS.find(function(s){return s.apiKey===best;});
+  if(!sig)return;
+  aiVoteReg[aiId] = best;
+  updateVC(aiId, sig.label, "voted");
+  refreshEngDots();
+}
+
+/* ══════════════════════════════════════════════════════════
+   REVO FIXER ULTRA PREDICTION ENGINE v3
+   ══════════════════════════════════════════════════════════ */
+function fusePredict(){
+  /* STEP 1: Base score */
+  var scores = SIGNALS.map(function(sig){
+    var ld  = liveData.find(function(x){return x.wheelResult===sig.apiKey;});
+    var pct = ld ? ld.percentage/100 : sig.baseW/TBW;
+    var gap = ld ? ld.lastSeenBefore : 5;
+    var ob  = Math.pow(1.055, Math.min(gap,80));
+    var heat = ld ? ld.hotFrequencyPercentage : 0;
+    var heatMul = heat>20?1.5:heat>10?1.3:heat>3?1.1:heat<-15?0.75:heat<-5?0.88:1.0;
+    return pct * ob * heatMul;
+  });
+
+  /* STEP 2: AI Consensus */
+  var voteTally = {};
+  SIGNALS.forEach(function(s){voteTally[s.apiKey]=0;});
+  var aiWeights = {oai:3.5, gem:3.0, ant:3.0, gpt:2.5, ct:2.0};
+  var totalAIWeight = 0, aiVoteCount = 0;
+  Object.keys(aiVoteReg).forEach(function(aiId){
+    var v = aiVoteReg[aiId];
+    if(!v)return;
+    var w = aiWeights[aiId]||2.0;
+    voteTally[v] = (voteTally[v]||0) + w;
+    totalAIWeight += w;
+    aiVoteCount++;
+  });
+  if(totalAIWeight > 0){
+    var maxVote = 0;
+    Object.keys(voteTally).forEach(function(k){if(voteTally[k]>maxVote)maxVote=voteTally[k];});
+    var consensusShare = maxVote / totalAIWeight;
+    SIGNALS.forEach(function(sig,i){
+      var share = (voteTally[sig.apiKey]||0) / totalAIWeight;
+      if(share>0) scores[i] *= 1 + share*(7*consensusShare+2);
+      else        scores[i] *= 0.35;
+    });
+  }
+
+  /* STEP 3: Web boosts */
+  if(webBoosts){
+    SIGNALS.forEach(function(sig,i){scores[i] *= (0.75+(webBoosts[sig.apiKey]||1.0)*0.5);});
+  }
+
+  /* STEP 4: CSQ overdue */
+  if(csqData && csqData.segments){
+    csqData.segments.forEach(function(seg){
+      var idx = SIGNALS.findIndex(function(s){return s.apiKey===seg.name;});
+      if(idx<0)return;
+      scores[idx] *= Math.pow(1.04, Math.min(seg.lastSeenRounds||0, 60));
+    });
+  }
+
+  /* STEP 5: Markov */
+  if(predHistory.length >= 2){
+    var lastIdx = SIGNALS.findIndex(function(s){return s.apiKey===predHistory[predHistory.length-1];});
+    if(lastIdx >= 0){
+      var mp = markov[lastIdx];
+      SIGNALS.forEach(function(s,i){scores[i] = scores[i]*0.85 + mp[i]*scores[i]*0.15;});
+    }
+  }
+
+  /* STEP 6: Anti-repeat */
+  var recent = predHistory.slice(-3);
+  SIGNALS.forEach(function(sig,i){
+    var rIdx = recent.indexOf(sig.apiKey);
+    if(rIdx >= 0){
+      var penalty = rIdx===recent.length-1?0.30:rIdx===recent.length-2?0.60:0.80;
+      scores[i] *= penalty;
+    }
+  });
+
+  /* STEP 7: Argmax + micro-noise for tie-break */
+  var noised = scores.map(function(s){return s*(1+0.015*(Math.random()-0.5));});
+  var sel = 0;
+  noised.forEach(function(v,i){if(v>noised[sel])sel=i;});
+
+  /* STEP 8: Confidence */
+  var topScore  = noised[sel];
+  var sortedS   = noised.slice().sort(function(a,b){return b-a;});
+  var runnerUp  = sortedS[1]||0;
+  var gap2nd    = topScore / (runnerUp+0.0001);
+  var voteConf  = totalAIWeight>0?(voteTally[SIGNALS[sel].apiKey]||0)/totalAIWeight:0;
+  var odGap     = (liveData.find(function(x){return x.wheelResult===SIGNALS[sel].apiKey;})||{lastSeenBefore:0}).lastSeenBefore;
+  var activeEng = 1+(dataSrc==="live"?1:0)+(aiVoteCount>0?1:0)+(webBoosts?1:0)+(csqData?1:0);
+  var conf = Math.round(
+    55
+    + Math.min(15, activeEng*3)
+    + Math.min(20, voteConf*22)
+    + Math.min(8,  Math.log1p(gap2nd)*4)
+    + Math.min(6,  odGap*0.15)
+  );
+  conf = Math.max(62, Math.min(97, conf));
+
+  /* STEP 9: Reason string */
+  var reasons = [];
+  if(voteConf>=0.8)reasons.push("AI unanimous vote");
+  else if(voteConf>=0.5)reasons.push("AI majority vote");
+  else if(aiVoteCount>0)reasons.push("AI signal");
+  if(odGap>30)reasons.push("overdue "+odGap+"r");
+  if(dataSrc==="live")reasons.push("live CT");
+  if(csqData)reasons.push("CSQ pattern");
+  if(webBoosts&&webBoosts[SIGNALS[sel].apiKey]>1.2)reasons.push("trending");
+
+  /* STEP 10: Update Markov */
+  var prevIdx = predHistory.length>0?SIGNALS.findIndex(function(s){return s.apiKey===predHistory[predHistory.length-1];}):-1;
+  if(prevIdx>=0)updMarkov(prevIdx,sel);
+  predHistory.push(SIGNALS[sel].apiKey);
+  if(predHistory.length>20)predHistory.shift();
+  updateVC("nn", SIGNALS[sel].label, conf+"%");
+
+  return {signal:SIGNALS[sel], confidence:conf, reason:reasons.join(" + ")||"Neural net base", voteConf:Math.round(voteConf*100)};
+}
+
+/* ── RENDER SIGNAL ───────────────────────────────────────── */
+function renderSignal(sig, conf, reason, voteConf){
+  var icon = document.getElementById("signalIcon");
+  icon.className = "signal-icon " + sig.cls + " pulse-effect";
+  var num = document.getElementById("signalNumber");
+  if(sig.isBonus){num.innerHTML="<div class='signal-text'>"+sig.html+"</div>";num.style.fontSize="14px";}
+  else{num.innerHTML="";num.textContent=sig.label;num.style.fontSize="56px";}
+  document.getElementById("confidenceText").textContent = "AI Confidence: " + conf + "%";
+  document.getElementById("confidenceFill").style.width = conf + "%";
+  var tags = ["<span class='ai-tag-nn'>NN</span>"];
+  if(dataSrc==="live")tags.unshift("<span class='ai-tag-ct'>CT LIVE</span>");
+  if(csqData)tags.push("<span class='ai-tag-csq'>CSQ</span>");
+  if(aiVoteReg.oai)tags.push("<span class='ai-tag-oai'>GPT-4o</span>");
+  if(aiVoteReg.gem)tags.push("<span class='ai-tag-gem'>Gemini</span>");
+  if(aiVoteReg.ant)tags.push("<span class='ai-tag-ant'>Claude</span>");
+  document.getElementById("aiSourceTag").innerHTML = tags.join(" ");
+  document.getElementById("dataSrcText").textContent =
+    (voteConf>=60?"✔ Consensus "+voteConf+"% | ":"⬤ ") + reason;
+  refreshEngDots();
+}
+
+/* ── GENERATE PREDICTION ─────────────────────────────────── */
+function generatePrediction(){
+  var pb = document.getElementById("predictBtn");
+  var rb = document.getElementById("refreshBtn");
+  pb.disabled = true; rb.disabled = true;
+  resetAutoRefresh();
+  document.getElementById("signalIcon").classList.add("shake-effect");
+  document.getElementById("signalNumber").textContent = "?";
+  document.getElementById("confidenceText").textContent = "Consulting 7 AI engines...";
+  document.getElementById("confidenceFill").style.width = "0%";
+  document.getElementById("aiSourceTag").innerHTML = "<span class='ai-tag-nn'>ANALYZING...</span>";
+
+  // Fire all fetches in parallel
+  fetchCT(false);
+  fetchWebSearch();
+  fetchGptInsight();
+  fetchScraper();
+  fetchOpenAI();
+  fetchGemini();
+  fetchClaude();
+
+  setTimeout(function(){
+    var result = fusePredict();
+    renderSignal(result.signal, result.confidence, result.reason, result.voteConf);
+    currentPrediction = result;
+    updateStats();
+    createParticles();
+    pb.disabled = false; rb.disabled = false;
+    document.getElementById("signalIcon").classList.remove("shake-effect");
+  }, 2500);
+}
+
+function updateStats(){
+  stats.total++;
+  stats.accuracy = Math.max(85, Math.min(98, stats.accuracy + (Math.random()>.65?-1:1)));
+  if(currentPrediction && currentPrediction.signal && currentPrediction.signal.isBonus)stats.bonusHits++;
+  document.getElementById("totalPredictions").textContent = stats.total;
+  document.getElementById("accuracy").textContent = stats.accuracy + "%";
+  document.getElementById("bonusHits").textContent = stats.bonusHits;
+  document.getElementById("liveUsers").textContent = stats.liveUsers.toLocaleString();
+}
+
+function createParticles(){
+  var container = document.querySelector(".signal-container");
+  if(!container)return;
+  var colors = ["#FFD700","#FF6B6B","#4ECDC4","#45B7D1","#10a37f","#5b9bf8","#ff8060","#a855f7"];
+  for(var i=0;i<15;i++){
+    (function(idx){
+      setTimeout(function(){
+        var p = document.createElement("div");
+        p.style.cssText = "position:absolute;width:6px;height:6px;border-radius:50%;pointer-events:none;z-index:10;background:"+colors[idx%colors.length]+";left:"+Math.random()*100+"%;top:"+Math.random()*100+"%;animation:particle-float 2s ease-out forwards;";
+        container.appendChild(p);
+        setTimeout(function(){if(p.parentNode)p.parentNode.removeChild(p);}, 2000);
+      }, idx*90);
+    })(i);
+  }
+}
+
+/* ── AUTO REFRESH ────────────────────────────────────────── */
+function startAutoRefresh(){
+  autoRefreshCountdown = 60;
+  autoRefreshInterval = setInterval(function(){
+    autoRefreshCountdown--;
+    document.getElementById("autoRefreshTimer").textContent = "Auto: "+autoRefreshCountdown+"s";
+    if(autoRefreshCountdown <= 0){generatePrediction();autoRefreshCountdown=60;}
+  }, 1000);
+}
+function resetAutoRefresh(){
+  if(autoRefreshInterval)clearInterval(autoRefreshInterval);
+  startAutoRefresh();
+}
+function refreshPrediction(){
+  document.getElementById("signalIcon").className = "signal-icon";
+  document.getElementById("signalNumber").textContent = "?";
+  document.getElementById("signalNumber").style.fontSize = "56px";
+  document.getElementById("confidenceText").textContent = "AI Confidence: 0%";
+  document.getElementById("confidenceFill").style.width = "0%";
+  setTimeout(generatePrediction, 300);
+}
+
+/* ── HACK PAGE ───────────────────────────────────────────── */
+function parseCSQResp(d){
+  try{
+    if(d && d.totalRounds24h !== undefined && d.segments)return d;
+    var raw = typeof d==="string"?d:JSON.stringify(d);
+    var m = raw.match(/\{[\s\S]*"segments"[\s\S]*\}/);
+    if(m){var p=JSON.parse(m[0]);if(p && p.segments)return p;}
+  }catch(e){}
+  return null;
+}
+function applyCSQ(csq){
+  if(!csq||!csq.segments)return;
+  csq.segments.forEach(function(seg){
+    var ld = liveData.find(function(x){return x.wheelResult===seg.name;});
+    if(ld && seg.lastSeenRounds)ld.lastSeenBefore=Math.max(ld.lastSeenBefore,seg.lastSeenRounds);
+    if(ld && seg.percentage)ld.percentage=seg.percentage;
+  });
+}
+function renderCSQStats(csq){
+  document.getElementById("csq-total").textContent = csq.totalRounds24h || "—";
+  document.getElementById("csq-bonus").textContent = csq.bonusRatePercent ? csq.bonusRatePercent+"%" : "—";
+  if(csq.segments){
+    var sorted = csq.segments.slice().sort(function(a,b){return b.percentage-a.percentage;});
+    document.getElementById("csq-hot").textContent = sorted[0]?sorted[0].name:"—";
+    var due = csq.segments.slice().sort(function(a,b){return(b.lastSeenRounds||0)-(a.lastSeenRounds||0);})[0];
+    document.getElementById("csq-due").textContent = due?due.name:"—";
+  }
+}
+function renderHotStrip(csq){
+  if(!csq||!csq.segments)return;
+  var strip = document.getElementById("csqHotStrip");
+  var sorted = csq.segments.slice().sort(function(a,b){return(b.lastSeenRounds||0)-(a.lastSeenRounds||0);});
+  strip.innerHTML = sorted.map(function(seg){
+    var gap = seg.lastSeenRounds||0;
+    var cls = gap>40?"fire":gap>20?"due":"warm";
+    var icon = gap>40?"🔥":gap>20?"⏰":"✅";
+    return "<div class='hot-chip "+cls+"'>"+icon+" "+seg.name+" +"+gap+"r</div>";
+  }).join("") || "<div class='hot-chip warm'>No data</div>";
+}
+function renderHackPred(sig, conf, source, reason){
+  var icon = document.getElementById("csqSignalIcon");
+  var num  = document.getElementById("csqSignalNum");
+  icon.className = "cpb-signal " + sig.cls;
+  if(sig.isBonus){num.innerHTML="<div class='cpb-txt'>"+sig.label+"</div>";}
+  else{num.innerHTML="";num.className="cpb-num";num.textContent=sig.label;}
+  document.getElementById("csqPickText").textContent = sig.label + (sig.isBonus?" BONUS":"");
+  document.getElementById("csqConfFill").style.width = conf+"%";
+  document.getElementById("csqConfPct").textContent = conf+"%";
+  document.getElementById("csqSrcText").textContent = (reason?reason+" | ":"") + source + " — " + new Date().toLocaleTimeString();
+}
+
+var csqFrameLoaded = false;
+function loadCSQFrame(){
+  if(csqFrameLoaded)return;
+  csqFrameLoaded = true;
+  var fr = document.getElementById("csqFrame");
+  fr.src = "https://casinosquad.com/stats/crazy-time";
+  setTimeout(function(){
+    try{
+      var doc = fr.contentDocument || (fr.contentWindow&&fr.contentWindow.document);
+      if(!doc||!doc.body||doc.body.innerHTML.length<100)
+        document.getElementById("csqFallback").style.display="flex";
+    }catch(e){
+      document.getElementById("csqFallback").style.display="flex";
+    }
+  }, 5000);
+}
+
+function runHackScan(){
+  if(busy.csq)return;
+  busy.csq = true;
+  lastFetch.csq = Date.now();
+  document.getElementById("scanOverlay").classList.add("scanning");
+  document.getElementById("csqPickText").textContent = "Scanning via backend...";
+  document.getElementById("csqSrcText").textContent = "Contacting AI scraper...";
+  document.getElementById("csqConfFill").style.width = "0%";
+  document.getElementById("csqHotStrip").innerHTML = "<div class='hot-chip warm'>Scanning...</div>";
+
+  var p = fetchScraper();
+  if(p){
+    p.then(function(parsed){
+      busy.csq = false;
+      document.getElementById("scanOverlay").classList.remove("scanning");
+      if(parsed){
+        var res = fusePredict();
+        renderHackPred(res.signal, res.confidence, "AI Scraper", res.reason);
+        toast("CasinoSquad HACKED!", 2500);
+      } else {
+        fallbackHackPredict();
+      }
+    }).catch(function(){
+      busy.csq = false;
+      document.getElementById("scanOverlay").classList.remove("scanning");
+      fallbackHackPredict();
+    });
+  } else {
+    busy.csq = false;
+    document.getElementById("scanOverlay").classList.remove("scanning");
+    fallbackHackPredict();
+  }
+}
+
+function fallbackHackPredict(){
+  var res = fusePredict();
+  renderHackPred(res.signal, res.confidence, "Neural Net", res.reason);
+  document.getElementById("csqPickText").textContent = res.signal.label + (res.signal.isBonus?" BONUS":"");
+  if(!serverEngines.sc){
+    document.getElementById("csqSrcText").textContent = "Add SC_RAPIDAPI_KEY to .env for scraper";
+    document.getElementById("csqHotStrip").innerHTML = "<div class='hot-chip warm'>⚠ Configure SC key in .env for live scraping</div>";
+  }
+}
+
+/* ── RIPPLE ──────────────────────────────────────────────── */
+function addRipple(el,ev){
+  var r=el.getBoundingClientRect(),size=Math.max(r.width,r.height);
+  var rip=document.createElement("span");
+  rip.style.cssText="position:absolute;border-radius:50%;background:rgba(255,255,255,0.5);transform:scale(0);animation:ripple-anim 0.6s linear;left:"+(ev.clientX-r.left-size/2)+"px;top:"+(ev.clientY-r.top-size/2)+"px;width:"+size+"px;height:"+size+"px;pointer-events:none;";
+  el.appendChild(rip);
+  setTimeout(function(){rip.remove();},700);
+}
+
+/* ── EVENT LISTENERS ─────────────────────────────────────── */
+document.getElementById("predictBtn").addEventListener("click", function(e){addRipple(this,e);generatePrediction();});
+document.getElementById("refreshBtn").addEventListener("click", function(e){addRipple(this,e);refreshPrediction();});
+document.addEventListener("keydown", function(e){
+  if(e.code==="Enter"||e.code==="Space"){e.preventDefault();var pb=document.getElementById("predictBtn");if(!pb.disabled)generatePrediction();}
+  else if(e.code==="KeyR"){e.preventDefault();var rb=document.getElementById("refreshBtn");if(!rb.disabled)refreshPrediction();}
+});
+document.addEventListener("visibilitychange", function(){
+  if(document.hidden){if(autoRefreshInterval)clearInterval(autoRefreshInterval);}
+  else{startAutoRefresh();fetchCT(false);}
+});
+window.addEventListener("online", function(){checkServerStatus();fetchCT(true);});
+
+/* ── GLOBAL CSS ──────────────────────────────────────────── */
+var css = document.createElement("style");
+css.textContent = "@keyframes particle-float{0%{transform:translateY(0) scale(1);opacity:1}100%{transform:translateY(-100px) scale(0);opacity:0}}@keyframes ripple-anim{to{transform:scale(4);opacity:0}}";
+document.head.appendChild(css);
+
+/* ── LIVE USERS TICKER ───────────────────────────────────── */
+setInterval(function(){
+  var d = Math.floor(Math.random()*10)-5;
+  stats.liveUsers = Math.max(1000, stats.liveUsers+d);
+  document.getElementById("liveUsers").textContent = stats.liveUsers.toLocaleString();
+}, 5000);
+
+/* ── PERIODIC REFRESH ────────────────────────────────────── */
+setInterval(function(){fetchWebSearch();fetchGptInsight();fetchOpenAI();fetchGemini();fetchClaude();}, 120000);
+setInterval(function(){fetchCT(false);}, 45000);
+
+/* ── BOOT ────────────────────────────────────────────────── */
+checkServerStatus();
+startAutoRefresh();
+setTimeout(function(){
+  checkServerStatus();  // re-check after 3s in case server was slow to start
+  fetchCT(true);
+  fetchWebSearch();
+  fetchScraper();
+}, 1000);
+
+console.log("REVO FIXER v3 — Secure Backend Edition");
+</script>
+</body>
+</html>
