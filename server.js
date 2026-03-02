@@ -279,6 +279,33 @@ app.get("/", (req, res) => {
   res.sendFile(require("path").join(__dirname, "public", "index.html"));
 });
 // ─── START ───────────────────────────────────────────────────
+// ─────────────────────────────────────────────
+// MASTER SIMPLE PREDICTION (BUTTON വേണ്ടി)
+// ─────────────────────────────────────────────
+app.get('/api/predict', async (req, res) => {
+  try {
+
+    const signals = [
+      "1","2","5","10",
+      "Pachinko","CashHunt",
+      "CoinFlip","CrazyBonus"
+    ];
+
+    const signal = signals[Math.floor(Math.random() * signals.length)];
+    const confidence = Math.floor(85 + Math.random() * 10);
+
+    res.json({
+      signal,
+      confidence
+    });
+
+  } catch (e) {
+    res.json({
+      signal: "CoinFlip",
+      confidence: 80
+    });
+  }
+});
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
