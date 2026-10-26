@@ -254,7 +254,6 @@
   function settlePending(result, recoveredFromSnapshot) {
     const pending = state.pending;
     if (!pending || !result || !result.outcome || hasRoundId(result.roundId)) return false;
-    if (pending.generatedAt && result.timestamp && result.timestamp < pending.generatedAt) return false;
     if (recoveredFromSnapshot && (!Array.isArray(pending.baselineRoundIds) ||
         pending.baselineRoundIds.indexOf(result.roundId) >= 0 || !result.timestamp || result.timestamp < pending.generatedAt)) return false;
 
@@ -262,7 +261,10 @@
     pending.actualResult = result.outcome;
     pending.resultTimestamp = result.timestamp || result.receivedAt || Date.now();
     pending.settledAt = Date.now();
-    if (pending.status === 'WAITING') {
+    if (pending.generatedAt && result.timestamp && result.timestamp < pending.generatedAt) {
+      pending.status = 'INVALID';
+      pending.reason = 'Result timestamp predates candidate generation; this round was not scored';
+    } else if (pending.status === 'WAITING') {
       pending.status = evaluateOutcome(pending.candidates, result.outcome);
       if (pending.status === 'INVALID') pending.reason = 'Confirmed result could not be normalized or evaluated';
     }
