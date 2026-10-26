@@ -308,31 +308,54 @@ function normalizeCTOutcome(value) {
 function extractCasinoScoresResults(html) {
   const results = [];
   const seen = new Set();
-  const rows = String(html || '').match(/<(?:tr|article|li)\b[\s\S]*?<\/(?:tr|article|li)>/gi) || [];
+  const rows = String(html || '').match(/<tr\b[\s\S]*?<\/tr>/gi) || [];
   for (const row of rows) {
-    const attrs = (row.match(/\b(?:alt|aria-label|title|data-result|data-outcome|data-round-id|data-roundid|datetime|data-time)\s*=\s*["'][^"']*["']/gi) || [])
-      .map(x => x.replace(/^[^=]+=\s*["']|["']$/g, ''));
-    const text = plainText(row);
-    const haystack = [text].concat(attrs).join(' | ');
-    const outcomePatterns = [
-      /(?:wheel\s*)?result\s*[:=-]?\s*(crazy\s*time|cash\s*hunt|coin\s*flip|pachinko|10x?|5x?|2x?|1x?)/i,
-      /\b(crazy\s*time|cash\s*hunt|coin\s*flip|pachinko)\b/i
-    ];
+    const cells = row.match(/<t[dh]\b[^>]*>[\s\S]*?<\/t[dh]>/gi) || [];
+    if (cells.length < 3) continue;
+    const cellInfo = cells.map(cell => {
+      const attrs = (cell.match(/\b(?:alt|aria-label|title|data-result|data-outcome|datetime|data-time)\s*=\s*["'][^"']*["']/gi) || [])
+        .map(x => x.replace(/^[^=]+=\s*["']|["']$/g, ''));
+      return { text: plainText(cell), attrs, html: cell };
+    });
+    const combined = cellInfo.map(c => c.text + ' ' + c.attrs.join(' ')).join(' | ');
+    if (/finished\s*\|\s*slot result/i.test(combined) || /spin history|multiplier\s+payout/i.test(combined)) continue;
+
+    // CasinoScores table columns are: Finished, Slot Result, Spin Result, Multiplier, Payout.
+    // Never read the Top Slot column as the winning wheel outcome.
+    const spinCell = cellInfo[2];
+    const multiplierCell = cellInfo[3];
+    const candidates = [];
+    if (spinCell) candidates.push(spinCell.attrs.join(' '), spinCell.text);
+    if (multiplierCell) candidates.push(multiplierCell.attrs.join(' '), multiplierCell.text);
+
     let outcome = null;
-    for (const pattern of outcomePatterns) {
-      const match = haystack.match(pattern);
-      if (match) { outcome = normalizeCTOutcome(match[1]); if (outcome) break; }
+    for (const candidate of candidates) {
+      const normalized = normalizeCTOutcome(candidate);
+      if (normalized) { outcome = normalized; break; }
+      const m = String(candidate || '').match(/(?:^|\D)(10|5|2|1)\s*x?(?:\D|$)/i);
+      if (m) { outcome = normalizeCTOutcome(m[1]); break; }
     }
-    // Do not interpret a generic "Spin Result" label as an outcome.
-    if (!outcome || /spin result\s*(?:\||$)/i.test(haystack) && !/\b(crazy\s*time|cash\s*hunt|coin\s*flip|pachinko|10x?|5x?|2x?|1x?)\b/i.test(haystack)) continue;
+    if (!outcome) continue;
+
+    const timeText = cellInfo[0] ? cellInfo[0].text : '';
     const idMatch = row.match(/\b(?:data-round-id|data-roundid|data-id|id)\s*=\s*["']([^"']+)["']/i);
     const timeMatch = row.match(/\b(?:datetime|data-time)\s*=\s*["']([^"']+)["']/i);
+    let timestamp = timeMatch ? Date.parse(timeMatch[1]) : NaN;
+    if (!Number.isFinite(timestamp)) {
+      const parsed = timeText.match(/(\d{1,2}\s+[A-Za-z]{3,9}\s+\d{1,2}:\d{2})/);
+      if (parsed) timestamp = Date.parse(parsed[1] + ' ' + new Date().getUTCFullYear() + ' UTC');
+    }
     const roundId = idMatch ? idMatch[1] : null;
-    const timestamp = timeMatch ? Date.parse(timeMatch[1]) : null;
-    const key = String(roundId || timestamp || text.slice(0, 100));
+    const key = String(roundId || (Number.isFinite(timestamp) ? timestamp : timeText) || (outcome + ':' + results.length));
     if (seen.has(key)) continue;
     seen.add(key);
-    results.push({roundId: roundId || key, outcome, timestamp: Number.isFinite(timestamp) ? timestamp : null, label: text.slice(0, 180)});
+    results.push({
+      roundId: roundId || key,
+      outcome,
+      timestamp: Number.isFinite(timestamp) ? timestamp : null,
+      label: timeText.slice(0, 100),
+      source: 'CasinoScores'
+    });
   }
   return results.slice(0, 30);
 }
@@ -380,28 +403,35 @@ app.get("/", (req, res) => {
 // MASTER SIMPLE PREDICTION (BUTTON വേണ്ടി)
 // ─────────────────────────────────────────────
 app.get('/api/predict', async (req, res) => {
-  try {
-
-    const signals = [
-      "1","2","5","10",
-      "Pachinko","CashHunt",
-      "CoinFlip","CrazyBonus"
-    ];
-
-    const signal = signals[Math.floor(Math.random() * signals.length)];
-    const confidence = Math.floor(85 + Math.random() * 10);
-
-    res.json({
-      signal,
-      confidence
-    });
-
-  } catch (e) {
-    res.json({
-      signal: "CoinFlip",
-      confidence: 80
+  const feed = cache.get('casinoscores_crazy_time_results');
+  const results = feed && Array.isArray(feed.results) ? feed.results : [];
+  if (!results.length) {
+    return res.status(503).json({
+      ok: false,
+      error: 'No verified CasinoScores results are cached yet. Load /api/crazy-time/results first.',
+      source: 'CasinoScores'
     });
   }
+
+  const outcomes = ['1','2','5','10','Coin Flip','Pachinko','Cash Hunt','Crazy Time'];
+  const wheelCounts = {'1':21,'2':13,'5':7,'10':4,'Coin Flip':4,'Pachinko':2,'Cash Hunt':2,'Crazy Time':1};
+  const counts = Object.assign({}, wheelCounts);
+  results.slice(0, 30).forEach(item => {
+    const outcome = normalizeCTOutcome(item.outcome);
+    if (outcome && counts[outcome] !== undefined) counts[outcome] += 1;
+  });
+  const signal = outcomes.reduce((best, current) =>
+    counts[current] > counts[best] ? current : best, outcomes[0]);
+  return res.json({
+    ok: true,
+    signal,
+    confidence: null,
+    basis: 'Descriptive wheel-frequency baseline plus the latest verified CasinoScores sample',
+    source: 'CasinoScores',
+    sourceTimestamp: feed.fetchedAt || null,
+    sampleSize: results.length,
+    disclaimer: 'This is not a reliable prediction. Crazy Time outcomes are random and past results do not determine the next spin.'
+  });
 });
 const PORT = process.env.PORT || 3000;
 
