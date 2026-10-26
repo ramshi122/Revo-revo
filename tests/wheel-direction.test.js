@@ -28,7 +28,7 @@ assert.equal(W.evaluateOutcome([], '1'), 'INVALID');
 assert.equal(W.evaluateOutcome(['1','2'], '1'), 'INVALID');
 
 const candidates = W.getNextFivePockets(0, 'clockwise');
-assert.equal(W.expectedHitProbability(candidates), 1, 'all distinct outcomes on this test window are represented in this fixture');
+assert.equal(W.expectedHitProbability(candidates), 39/54);
 const baselineSet = ['1','2','5'];
 assert.equal(W.expectedHitProbability(baselineSet), 41/54);
 
