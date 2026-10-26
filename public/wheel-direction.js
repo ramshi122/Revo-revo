@@ -292,7 +292,7 @@
     if (!motionOk) reasons.push('Reliable wheel motion direction is not currently available');
     if (!Number.isInteger(refIndex) || refIndex < 0 || refIndex >= WHEEL_ORDER.length) reasons.push('Reference pocket at the fixed pointer was not selected');
     if (!state.resultsConnected || !state.snapshotInitialized) reasons.push('Confirmed result feed is not connected');
-    if (!Array.isArray(state.baselineIds)) reasons.push('Live-result baseline is unavailable');
+    if (!state.resultsConnected || !state.snapshotInitialized || !(state.knownIds instanceof Set)) reasons.push('Live-result baseline is unavailable');
 
     const valid = reasons.length === 0 && candidates.length === 5;
     const record = {
