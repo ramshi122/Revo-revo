@@ -132,6 +132,33 @@ body{font-family:Arial,sans-serif;min-height:100vh;background:linear-gradient(13
 .toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(80px);background:rgba(0,0,0,0.92);color:#FFD700;padding:8px 20px;border-radius:30px;font-size:11px;font-weight:bold;border:1px solid rgba(255,215,0,0.3);z-index:9999;transition:transform .4s cubic-bezier(.34,1.56,.64,1);pointer-events:none;white-space:nowrap;}
 .toast.show{transform:translateX(-50%) translateY(0);}
 @media(max-width:480px){.signal-text{font-size:12px!important;}.signal-icon{width:120px;height:120px;}.signal-number{font-size:48px;}.cpb-pick{font-size:15px;}}
+
+/* ISOLATED WHEEL DIRECTION ANALYSIS — existing Signal Card styles remain unchanged */
+#wheelAnalysisPanel{margin:18px 0 30px;background:rgba(0,0,0,.88);color:#fff;border:2px solid rgba(255,215,0,.45);border-radius:20px;padding:18px;box-shadow:0 10px 30px rgba(0,0,0,.28)}
+.wa-title{color:#FFD700;font-size:17px;font-weight:900;text-align:center;margin-bottom:5px}
+.wa-subtitle{font-size:10px;color:rgba(255,255,255,.55);text-align:center;line-height:1.5;margin-bottom:14px}
+.wa-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.wa-metric{padding:10px;background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.09);border-radius:11px;min-width:0}
+.wa-label{font-size:9px;color:rgba(255,255,255,.5);letter-spacing:.5px;margin-bottom:5px}
+.wa-value{font-size:13px;color:#FFD700;font-weight:800;overflow-wrap:anywhere}
+.wa-candidates{margin-top:10px;padding:12px;background:rgba(255,215,0,.07);border:1px solid rgba(255,215,0,.22);border-radius:12px}
+.wa-controls{display:flex;flex-wrap:wrap;gap:7px;margin:10px 0}
+.wa-btn{flex:1;min-width:115px;padding:10px 9px;border:1px solid rgba(255,215,0,.35);border-radius:10px;background:rgba(255,215,0,.1);color:#FFD700;font-weight:800;font-size:11px;cursor:pointer}
+.wa-btn:disabled{opacity:.4;cursor:not-allowed}
+.wa-btn.primary{background:linear-gradient(45deg,#FFD700,#ffa502);color:#111}
+.wa-btn.danger{border-color:rgba(255,80,90,.45);color:#ff7b86}
+.wa-select{width:100%;padding:10px;background:#171717;color:white;border:1px solid rgba(255,255,255,.2);border-radius:9px;margin:6px 0 3px}
+.wa-preview{display:block;width:100%;max-height:330px;object-fit:contain;background:#080808;border:1px solid rgba(255,255,255,.14);border-radius:10px;touch-action:manipulation}
+.wa-small{font-size:10px;color:rgba(255,255,255,.58);line-height:1.5;margin-top:7px;overflow-wrap:anywhere}
+.wa-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin-top:10px}
+.wa-history-row{display:grid;grid-template-columns:.8fr .9fr 1.5fr;gap:6px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.09);font-size:10px}
+.wa-history-row b{display:block;color:#fff;overflow-wrap:anywhere;font-size:10px}
+.wa-history-row small{display:block;color:rgba(255,255,255,.45);margin-top:3px;overflow-wrap:anywhere}
+.wa-status{display:inline-block;border-radius:6px;padding:3px 5px;font-size:9px;font-weight:900}
+.wa-hit{background:rgba(46,213,115,.15);color:#2ed573}.wa-miss{background:rgba(255,71,87,.15);color:#ff6576}.wa-invalid{background:rgba(255,215,0,.12);color:#FFD700}.wa-waiting{background:rgba(91,155,248,.15);color:#8bb5ff}
+.wa-empty{padding:12px;text-align:center;font-size:10px;color:rgba(255,255,255,.4)}
+@media(max-width:360px){.wa-grid{grid-template-columns:1fr}.wa-history-row{grid-template-columns:1fr 1fr}.wa-history-row>div:last-child{grid-column:1/-1}}
+
 </style>
 </head>
 <body>
@@ -185,6 +212,55 @@ body{font-family:Arial,sans-serif;min-height:100vh;background:linear-gradient(13
       <div class="stat-item"><div class="stat-value" id="liveUsers">1,247</div><div class="stat-label">Live Users</div></div>
     </div>
   </div>
+
+  <section id="wheelAnalysisPanel" aria-label="Wheel direction analysis">
+    <div class="wa-title">↻ WHEEL DIRECTION ANALYSIS</div>
+    <div class="wa-subtitle">Experimental observation tracker · candidates are not guaranteed outcomes</div>
+    <div class="wa-grid">
+      <div class="wa-metric"><div class="wa-label">WHEEL DIRECTION</div><div class="wa-value" id="waDirection">UNKNOWN</div></div>
+      <div class="wa-metric"><div class="wa-label">ANGULAR VELOCITY</div><div class="wa-value" id="waVelocity">—</div></div>
+      <div class="wa-metric"><div class="wa-label">MOTION DATA QUALITY</div><div class="wa-value" id="waMotionQuality">NOT TRACKING</div></div>
+      <div class="wa-metric"><div class="wa-label">LATEST CONFIRMED RESULT</div><div class="wa-value" id="waLiveResult">Waiting…</div></div>
+    </div>
+    <div class="wa-metric" style="margin-top:9px">
+      <div class="wa-label">LIVE RESULT FEED</div><div class="wa-small" id="waFeedStatus">Connecting to read-only Firebase feed…</div>
+    </div>
+    <div class="wa-controls">
+      <button class="wa-btn primary" id="waStartTracking">Start screen tracking</button>
+      <button class="wa-btn danger" id="waStopTracking" disabled>Stop tracking</button>
+      <button class="wa-btn" id="waResetCalibration" disabled>Reset calibration</button>
+    </div>
+    <div class="wa-small">Share the game screen/window when prompted. In the preview, tap the centre of the large wheel, then tap its outer rim. Keep the wheel visible and unobstructed.</div>
+    <video id="waCaptureVideo" muted playsinline style="display:none"></video>
+    <canvas id="waPreviewCanvas" class="wa-preview" width="960" height="540" hidden aria-label="Shared screen wheel calibration preview"></canvas>
+    <div class="wa-metric" style="margin-top:10px">
+      <div class="wa-label">REFERENCE POCKET AT FIXED POINTER</div>
+      <select id="waReferencePocket" class="wa-select"></select>
+      <div class="wa-small">Choose the exact pocket currently at the fixed pointer, using the verified wheel layout. Pocket numbers are layout indices, not result values. Confirm the canonical ordering before using measured outcomes.</div>
+    </div>
+    <div class="wa-controls">
+      <button class="wa-btn primary" id="waCaptureObservation">Record five-segment observation</button>
+      <button class="wa-btn" id="waExportCSV">Export analysis CSV</button>
+    </div>
+    <div class="wa-candidates"><div class="wa-label">NEXT FIVE SEGMENTS · RECORDED CANDIDATES</div><div class="wa-value" id="waCandidates">Waiting for a valid motion observation</div></div>
+    <div class="wa-metric" style="margin-top:9px"><div class="wa-label">ANALYSIS STATUS</div><div class="wa-value" id="waCurrentStatus">WAITING</div><div class="wa-small" id="waMotionNote">Direction is not guessed when evidence is insufficient.</div></div>
+    <div class="wa-title" style="font-size:14px;margin-top:16px">RECORDED PERFORMANCE</div>
+    <div class="wa-stats">
+      <div class="wa-metric"><div class="wa-label">VALID ROUNDS</div><div class="wa-value" id="waValidRounds">0</div></div>
+      <div class="wa-metric"><div class="wa-label">HITS / MISSES</div><div class="wa-value"><span id="waHits">0</span> / <span id="waMisses">0</span></div></div>
+      <div class="wa-metric"><div class="wa-label">INVALID / UNOBSERVABLE</div><div class="wa-value" id="waInvalid">0</div></div>
+      <div class="wa-metric"><div class="wa-label">OBSERVED HIT RATE</div><div class="wa-value" id="waHitRate">—</div></div>
+      <div class="wa-metric"><div class="wa-label">WHEEL-LAYOUT BASELINE</div><div class="wa-value" id="waBaseline">—</div></div>
+      <div class="wa-metric"><div class="wa-label">HIT RATE − BASELINE</div><div class="wa-value" id="waDifference">—</div></div>
+      <div class="wa-metric"><div class="wa-label">RECENT 20 VALID ROUNDS</div><div class="wa-value" id="waRecentRate">—</div></div>
+      <div class="wa-metric"><div class="wa-label">CLOCKWISE / RIGHT</div><div class="wa-value" id="waClockwiseRate">—</div></div>
+      <div class="wa-metric"><div class="wa-label">COUNTERCLOCKWISE / LEFT</div><div class="wa-value" id="waCounterRate">—</div></div>
+    </div>
+    <div class="wa-small" id="waSampleWarning">Exploratory only. No historical accuracy is claimed.</div>
+    <div class="wa-title" style="font-size:14px;margin-top:16px">RECENT EVALUATED ROUNDS</div>
+    <div id="waHistory"><div class="wa-empty">No evaluated rounds recorded yet.</div></div>
+    <div class="wa-small">Records are stored separately in this browser. The existing live-results source is read-only. Export the CSV for backup. Wheel segment ordering must be checked against a verified physical layout before treating this analysis as meaningful.</div>
+  </section>
 </div>
 </div>
 
@@ -239,6 +315,7 @@ body{font-family:Arial,sans-serif;min-height:100vh;background:linear-gradient(13
   <button class="bnav-btn" id="bnav2" onclick="switchPage(2)"><span class="bi">&#128308;</span>HACK SCAN</button>
 </div>
 
+<script src="/wheel-direction.js" defer></script>
 <script>
 // ════════════════════════════════════════════════════════════
 //  REVO FIXER FRONTEND v3 — Secure Backend Edition
