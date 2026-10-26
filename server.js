@@ -316,8 +316,7 @@ function extractCasinoScoresResults(html) {
     const haystack = [text].concat(attrs).join(' | ');
     const outcomePatterns = [
       /(?:wheel\s*)?result\s*[:=-]?\s*(crazy\s*time|cash\s*hunt|coin\s*flip|pachinko|10x?|5x?|2x?|1x?)/i,
-      /\b(crazy\s*time|cash\s*hunt|coin\s*flip|pachinko)\b/i,
-      /\b(10x?|5x?|2x?|1x?)\b/i
+      /\b(crazy\s*time|cash\s*hunt|coin\s*flip|pachinko)\b/i
     ];
     let outcome = null;
     for (const pattern of outcomePatterns) {
