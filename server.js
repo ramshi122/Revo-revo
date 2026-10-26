@@ -272,6 +272,104 @@ app.post('/api/claude', async (req, res) => {
   }
 });
 
+
+
+// ─── CASINOSCORES CRAZY TIME RESULT FEED ─────────────────────
+// Public page scraper only. If the page markup does not expose a
+// confirmed outcome, return an explicit empty feed rather than inventing one.
+function decodeHtml(value) {
+  return String(value || '')
+    .replace(/&nbsp;|&#160;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;|&apos;/gi, "'")
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>');
+}
+function plainText(value) {
+  return decodeHtml(String(value || '')
+    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<[^>]+>/g, ' '))
+    .replace(/\s+/g, ' ').trim();
+}
+function normalizeCTOutcome(value) {
+  const s = String(value || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  if (s === '1' || s === '1x') return '1';
+  if (s === '2' || s === '2x') return '2';
+  if (s === '5' || s === '5x') return '5';
+  if (s === '10' || s === '10x') return '10';
+  if (s.includes('coinflip')) return 'Coin Flip';
+  if (s.includes('pachinko')) return 'Pachinko';
+  if (s.includes('cashhunt')) return 'Cash Hunt';
+  if (s.includes('crazytime') || s.includes('crazybonus')) return 'Crazy Time';
+  return null;
+}
+function extractCasinoScoresResults(html) {
+  const results = [];
+  const seen = new Set();
+  const rows = String(html || '').match(/<(?:tr|article|li)\b[\s\S]*?<\/(?:tr|article|li)>/gi) || [];
+  for (const row of rows) {
+    const attrs = (row.match(/\b(?:alt|aria-label|title|data-result|data-outcome|data-round-id|data-roundid|datetime|data-time)\s*=\s*["'][^"']*["']/gi) || [])
+      .map(x => x.replace(/^[^=]+=\s*["']|["']$/g, ''));
+    const text = plainText(row);
+    const haystack = [text].concat(attrs).join(' | ');
+    const outcomePatterns = [
+      /(?:wheel\s*)?result\s*[:=-]?\s*(crazy\s*time|cash\s*hunt|coin\s*flip|pachinko|10x?|5x?|2x?|1x?)/i,
+      /\b(crazy\s*time|cash\s*hunt|coin\s*flip|pachinko)\b/i,
+      /\b(10x?|5x?|2x?|1x?)\b/i
+    ];
+    let outcome = null;
+    for (const pattern of outcomePatterns) {
+      const match = haystack.match(pattern);
+      if (match) { outcome = normalizeCTOutcome(match[1]); if (outcome) break; }
+    }
+    // Do not interpret a generic "Spin Result" label as an outcome.
+    if (!outcome || /spin result\s*(?:\||$)/i.test(haystack) && !/\b(crazy\s*time|cash\s*hunt|coin\s*flip|pachinko|10x?|5x?|2x?|1x?)\b/i.test(haystack)) continue;
+    const idMatch = row.match(/\b(?:data-round-id|data-roundid|data-id|id)\s*=\s*["']([^"']+)["']/i);
+    const timeMatch = row.match(/\b(?:datetime|data-time)\s*=\s*["']([^"']+)["']/i);
+    const roundId = idMatch ? idMatch[1] : null;
+    const timestamp = timeMatch ? Date.parse(timeMatch[1]) : null;
+    const key = String(roundId || timestamp || text.slice(0, 100));
+    if (seen.has(key)) continue;
+    seen.add(key);
+    results.push({roundId: roundId || key, outcome, timestamp: Number.isFinite(timestamp) ? timestamp : null, label: text.slice(0, 180)});
+  }
+  return results.slice(0, 30);
+}
+app.get('/api/crazy-time/results', async (req, res) => {
+  const cacheKey = 'casinoscores_crazy_time_results';
+  const cached = cache.get(cacheKey);
+  if (cached) return res.json({ ...cached, cached: true });
+  try {
+    const response = await apiFetch('https://www.casino.org/casinoscores/crazy-time/', {
+      method: 'GET',
+      headers: {
+        'user-agent': 'Mozilla/5.0 (compatible; RevoFixerResultReader/1.0)',
+        'accept': 'text/html,application/xhtml+xml'
+      }
+    }, 12000);
+    if (!response.ok) return res.status(502).json({ error: 'CasinoScores returned HTTP ' + response.status, source: 'CasinoScores', results: [] });
+    const html = await response.text();
+    const results = extractCasinoScoresResults(html);
+    const payload = {
+      ok: results.length > 0,
+      source: 'CasinoScores',
+      sourceUrl: 'https://www.casino.org/casinoscores/crazy-time/',
+      fetchedAt: new Date().toISOString(),
+      latest: results[0] || null,
+      results,
+      message: results.length ? 'Parsed results from public page markup' : 'No confirmed result rows were exposed in the public page HTML; live data is not guessed'
+    };
+    if (results.length) cache.set(cacheKey, payload, 15);
+    log('CASINOSCORES', results.length ? ('parsed ' + results.length + ' result rows') : 'no parseable result rows in page HTML');
+    res.json(payload);
+  } catch (e) {
+    log('CASINOSCORES', 'ERROR: ' + e.message);
+    res.status(502).json({ error: 'CasinoScores fetch failed: ' + e.message, source: 'CasinoScores', results: [] });
+  }
+});
+
 // ─── HEALTH ──────────────────────────────────────────────────
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
 // --- ROOT (INDEX PAGE)
